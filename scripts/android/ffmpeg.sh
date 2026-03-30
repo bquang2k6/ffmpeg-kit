@@ -82,8 +82,8 @@ for library in {0..61}; do
       CONFIGURE_POSTFIX+=" --enable-chromaprint"
       ;;
     cpu-features)
-  echo "INFO: Skipping cpu-features pkg-config check"
-;;
+      echo "INFO: Skipping cpu-features pkg-config check"
+      ;;
     dav1d)
       CFLAGS+=" $(pkg-config --cflags dav1d 2>>"${BASEDIR}"/build.log)"
       LDFLAGS+=" $(pkg-config --libs --static dav1d 2>>"${BASEDIR}"/build.log)"
@@ -425,7 +425,7 @@ fi
   --ranlib="${RANLIB}" \
   --strip="${STRIP}" \
   --nm="${NM}" \
-  --extra-libs="$(pkg-config --libs --static cpu-features)" \
+  --extra-libs="" \
   --disable-autodetect \
   --enable-cross-compile \
   --enable-pic \
