@@ -163,7 +163,7 @@ for library in {0..61}; do
     libvpx)
       CFLAGS+=" $(pkg-config --cflags vpx 2>>"${BASEDIR}"/build.log)"
       LDFLAGS+=" $(pkg-config --libs vpx 2>>"${BASEDIR}"/build.log)"
-      LDFLAGS+=" $(pkg-config --libs cpu-features 2>>"${BASEDIR}"/build.log)"
+      # LDFLAGS+=" $(pkg-config --libs cpu-features 2>>"${BASEDIR}"/build.log)"
       CONFIGURE_POSTFIX+=" --enable-libvpx"
       ;;
     libwebp)
