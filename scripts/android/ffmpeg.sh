@@ -65,6 +65,10 @@ x86-64)
   ;;
 esac
 
+if ! command -v yasm >/dev/null 2>&1 && ! command -v nasm >/dev/null 2>&1; then
+  ASM_OPTIONS+=" --disable-x86asm"
+fi
+
 CONFIGURE_POSTFIX=""
 HIGH_PRIORITY_INCLUDES=""
 
@@ -473,7 +477,9 @@ echo "DEBUG: PATH is [${PATH}]" 1>>"${BASEDIR}"/build.log 2>&1
 
 # FORCE HARDLINKS INSTEAD OF SYMLINKS FOR WINDOWS TOOLCHAIN COMPATIBILITY ON WSL
 if [ -f /proc/version ] && grep -qi Microsoft /proc/version && [[ ${TOOLCHAIN} == windows* ]]; then
-  sed -i 's/^LN_S=ln -s -f/LN_S=ln -f/g' ffbuild/config.mak
+  if [ -f ffbuild/config.mak ]; then
+    sed -i 's/^LN_S=ln -s -f/LN_S=ln -f/g' ffbuild/config.mak
+  fi
 fi
 
 if [[ $? -ne 0 ]]; then
