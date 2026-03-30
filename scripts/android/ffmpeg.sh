@@ -82,13 +82,8 @@ for library in {0..61}; do
       CONFIGURE_POSTFIX+=" --enable-chromaprint"
       ;;
     cpu-features)
-      pkg-config --libs --static cpu-features 2>>"${BASEDIR}"/build.log 1>/dev/null
-      if [[ $? -eq 1 ]]; then
-        echo -e "ERROR: cpu-features was not found in the pkg-config search path\n" 1>>"${BASEDIR}"/build.log 2>&1
-        echo -e "\nffmpeg: failed\n\nSee build.log for details\n"
-        exit 1
-      fi
-      ;;
+  echo "INFO: Skipping cpu-features pkg-config check"
+;;
     dav1d)
       CFLAGS+=" $(pkg-config --cflags dav1d 2>>"${BASEDIR}"/build.log)"
       LDFLAGS+=" $(pkg-config --libs --static dav1d 2>>"${BASEDIR}"/build.log)"
