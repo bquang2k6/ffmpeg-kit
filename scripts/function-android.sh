@@ -147,9 +147,11 @@ get_toolchain() {
   local NDK_TOOLCHAIN="${HOST_OS}-${HOST_ARCH}"
 
   # WSL FALLBACK TO WINDOWS NDK TOOLCHAIN
-  if [ "${HOST_OS}" == "linux" ] && [ -f /proc/version ] && grep -qi Microsoft /proc/version && [ ! -d "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${NDK_TOOLCHAIN}" ]; then
-    if [ -d "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/windows-x86_64" ]; then
-      NDK_TOOLCHAIN="windows-x86_64"
+  if [ "${HOST_OS}" == "linux" ] && [ -f /proc/version ] && grep -qi Microsoft /proc/version; then
+    if [ ! -d "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64" ]; then
+      if [ -d "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/windows-x86_64" ]; then
+        NDK_TOOLCHAIN="windows-x86_64"
+      fi
     fi
   fi
 
@@ -1001,13 +1003,18 @@ get_aar_directory() {
 }
 
 android_ndk_cmake() {
-  local cmake=$(find "${ANDROID_SDK_ROOT}"/cmake \( -path \*/bin/cmake -o -path \*/bin/cmake.exe \) -type f -print -quit)
-  if [[ -z ${cmake} ]]; then
-    cmake=$(which cmake)
+  local cmake=$(which cmake)
+
+  # WSL: PREFER NATIVE CMAKE OVER WINDOWS CMAKE.EXE
+  if [ -f /proc/version ] && grep -qi Microsoft /proc/version; then
+    if [[ ${cmake} == *.exe ]] || [[ -z ${cmake} ]]; then
+      local sdk_cmake=$(find "${ANDROID_SDK_ROOT}"/cmake \( -path \*/bin/cmake -o -path \*/bin/cmake.exe \) -type f -print -quit)
+      if [[ -n ${sdk_cmake} ]]; then
+        cmake=${sdk_cmake}
+      fi
+    fi
   fi
-  if [[ -z ${cmake} ]]; then
-    cmake=$(which cmake.exe)
-  fi
+
   if [[ -z ${cmake} ]]; then
     cmake="missing_cmake"
   fi
@@ -1055,8 +1062,13 @@ set_toolchain_paths() {
 
   HOST=$(get_host)
 
-  export CC=$(get_clang_host)-clang
-  export CXX=$(get_clang_host)-clang++
+  local EXE=""
+  if [[ ${TOOLCHAIN} == windows* ]] && [ -f /proc/version ] && grep -qi Microsoft /proc/version; then
+    EXE=".exe"
+  fi
+
+  export CC=$(get_clang_host)-clang${EXE}
+  export CXX=$(get_clang_host)-clang++${EXE}
 
   case ${ARCH} in
   arm64-v8a)
@@ -1064,22 +1076,22 @@ set_toolchain_paths() {
     ;;
   esac
   if [[ $(compare_versions "$DETECTED_NDK_VERSION" "23") -ge 0 ]]; then
-    export AR=llvm-ar
-    export LD=lld
-    export RANLIB=llvm-ranlib
-    export STRIP=llvm-strip
-    export NM=llvm-nm
+    export AR=llvm-ar${EXE}
+    export LD=lld${EXE}
+    export RANLIB=llvm-ranlib${EXE}
+    export STRIP=llvm-strip${EXE}
+    export NM=llvm-nm${EXE}
     export AS=$CC
   else
-    export AR=${HOST}-ar
-    export LD=${HOST}-ld
-    export RANLIB=${HOST}-ranlib
-    export STRIP=${HOST}-strip
-    export NM=${HOST}-nm
+    export AR=${HOST}-ar${EXE}
+    export LD=${HOST}-ld${EXE}
+    export RANLIB=${HOST}-ranlib${EXE}
+    export STRIP=${HOST}-strip${EXE}
+    export NM=${HOST}-nm${EXE}
     if [ "$1" == "x264" ]; then
       export AS=${CC}
     else
-      export AS=${HOST}-as
+      export AS=${HOST}-as${EXE}
     fi
   fi
   export INSTALL_PKG_CONFIG_DIR="${BASEDIR}"/prebuilt/$(get_build_directory)/pkgconfig
