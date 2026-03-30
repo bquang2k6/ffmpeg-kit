@@ -144,7 +144,16 @@ get_toolchain() {
     HOST_ARCH=x86_64
   fi
 
-  echo "${HOST_OS}-${HOST_ARCH}"
+  local NDK_TOOLCHAIN="${HOST_OS}-${HOST_ARCH}"
+
+  # WSL FALLBACK TO WINDOWS NDK TOOLCHAIN
+  if [ "${HOST_OS}" == "linux" ] && [ -f /proc/version ] && grep -qi Microsoft /proc/version && [ ! -d "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${NDK_TOOLCHAIN}" ]; then
+    if [ -d "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/windows-x86_64" ]; then
+      NDK_TOOLCHAIN="windows-x86_64"
+    fi
+  fi
+
+  echo "${NDK_TOOLCHAIN}"
 }
 
 get_cmake_system_processor() {
@@ -992,9 +1001,12 @@ get_aar_directory() {
 }
 
 android_ndk_cmake() {
-  local cmake=$(find "${ANDROID_SDK_ROOT}"/cmake -path \*/bin/cmake -type f -print -quit)
+  local cmake=$(find "${ANDROID_SDK_ROOT}"/cmake \( -path \*/bin/cmake -o -path \*/bin/cmake.exe \) -type f -print -quit)
   if [[ -z ${cmake} ]]; then
     cmake=$(which cmake)
+  fi
+  if [[ -z ${cmake} ]]; then
+    cmake=$(which cmake.exe)
   fi
   if [[ -z ${cmake} ]]; then
     cmake="missing_cmake"
@@ -1011,14 +1023,29 @@ android_ndk_cmake() {
     ;;
   esac
 
+  # PATH CONVERSION FOR WINDOWS CMAKE ON WSL
+  local toolchain_file="${ANDROID_NDK_ROOT}"/build/cmake/android.toolchain.cmake
+  local sysroot="${ANDROID_SYSROOT}"
+  local install_prefix="${LIB_INSTALL_PREFIX}"
+  local source_dir="${BASEDIR}"/src/"${LIB_NAME}"
+  local build_dir="${BUILD_DIR}"
+
+  if [[ ${cmake} == *.exe ]]; then
+    toolchain_file=$(wslpath -w "${toolchain_file}")
+    sysroot=$(wslpath -w "${sysroot}")
+    install_prefix=$(wslpath -w "${install_prefix}")
+    source_dir=$(wslpath -w "${source_dir}")
+    build_dir=$(wslpath -w "${build_dir}")
+  fi
+
   echo ${cmake} \
     -DCMAKE_VERBOSE_MAKEFILE=0 \
-    -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}"/build/cmake/android.toolchain.cmake \
-    -DCMAKE_SYSROOT="${ANDROID_SYSROOT}" \
-    -DCMAKE_FIND_ROOT_PATH="${ANDROID_SYSROOT}" \
-    -DCMAKE_INSTALL_PREFIX="${LIB_INSTALL_PREFIX}" \
-    -H"${BASEDIR}"/src/"${LIB_NAME}" \
-    -B"${BUILD_DIR}" \
+    -DCMAKE_TOOLCHAIN_FILE="${toolchain_file}" \
+    -DCMAKE_SYSROOT="${sysroot}" \
+    -DCMAKE_FIND_ROOT_PATH="${sysroot}" \
+    -DCMAKE_INSTALL_PREFIX="${install_prefix}" \
+    -H"${source_dir}" \
+    -B"${build_dir}" \
     "${ASM_OPTIONS}" \
     -DANDROID_PLATFORM=android-"${API}"
 }
