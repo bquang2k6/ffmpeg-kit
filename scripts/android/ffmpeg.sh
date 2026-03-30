@@ -407,6 +407,9 @@ else
   echo -e "\nINFO: Enabled custom ffmpeg-kit protocols\n" 1>>"${BASEDIR}"/build.log 2>&1
 fi
 
+echo "DEBUG: CC is [${CC}]" 1>>"${BASEDIR}"/build.log 2>&1
+echo "DEBUG: PATH is [${PATH}]" 1>>"${BASEDIR}"/build.log 2>&1
+
 ###################################################################
 
 ./configure \

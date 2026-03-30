@@ -1067,8 +1067,8 @@ set_toolchain_paths() {
     EXE=".exe"
   fi
 
-  export CC=$(get_clang_host)-clang${EXE}
-  export CXX=$(get_clang_host)-clang++${EXE}
+  export CC=$(get_clang_host)-clang
+  export CXX=$(get_clang_host)-clang++
 
   case ${ARCH} in
   arm64-v8a)
