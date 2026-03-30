@@ -59,6 +59,7 @@ endif
 include $(CLEAR_VARS)
 LOCAL_ARM_MODE := $(MY_ARM_MODE)
 LOCAL_MODULE := ffmpegkit_abidetect
+LOCAL_LDFLAGS += -Wl,-z, max -page-size= 16384
 LOCAL_SRC_FILES := ffmpegkit_abidetect.c
 LOCAL_CFLAGS := -Wall -Wextra -Werror -Wno-unused-parameter -DFFMPEG_KIT_${MY_ARCH_FLAGS}
 LOCAL_C_INCLUDES := $(FFMPEG_INCLUDES)
@@ -109,6 +110,7 @@ ifeq ($(MY_BUILD_GENERIC_FFMPEG_KIT), true)
     LOCAL_PATH := $(MY_LOCAL_PATH)/../ffmpeg-kit-android-lib/src/main/cpp
     LOCAL_ARM_MODE := $(MY_ARM_MODE)
     LOCAL_MODULE := ffmpegkit
+    LOCAL_LDFLAGS += -Wl,-z, max -page-size= 16384
     LOCAL_SRC_FILES := $(MY_SRC_FILES)
     LOCAL_CFLAGS := $(MY_CFLAGS)
     LOCAL_LDLIBS := $(MY_LDLIBS)

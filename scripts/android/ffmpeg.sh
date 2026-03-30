@@ -26,7 +26,7 @@ set_toolchain_paths "${LIB_NAME}"
 HOST=$(get_host)
 export CFLAGS=$(get_cflags "${LIB_NAME}")
 export CXXFLAGS=$(get_cxxflags "${LIB_NAME}")
-export LDFLAGS=$(get_ldflags "${LIB_NAME}")
+export LDFLAGS= " $(get_ldflags " ${LIB_NAME} " ) -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
 export PKG_CONFIG_LIBDIR="${INSTALL_PKG_CONFIG_DIR}"
 
 cd "${BASEDIR}"/src/"${LIB_NAME}" 1>>"${BASEDIR}"/build.log 2>&1 || return 1
