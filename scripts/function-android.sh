@@ -158,6 +158,14 @@ get_toolchain() {
   echo "${NDK_TOOLCHAIN}"
 }
 
+to_tool_path() {
+  if [ -f /proc/version ] && grep -qi Microsoft /proc/version && [[ ${TOOLCHAIN} == windows* ]]; then
+    wslpath -w "$1" | sed 's/\\/\//g'
+  else
+    echo "$1"
+  fi
+}
+
 get_cmake_system_processor() {
   case ${ARCH} in
   arm-v7a | arm-v7a-neon)
@@ -408,7 +416,7 @@ get_cxxflags() {
 }
 
 get_common_linked_libraries() {
-  local COMMON_LIBRARY_PATHS="-L${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN}/${HOST}/lib -L${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN}/sysroot/usr/lib/${HOST}/${API} -L${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN}/lib"
+  local COMMON_LIBRARY_PATHS="-L$(to_tool_path "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN}/${HOST}/lib") -L$(to_tool_path "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN}/sysroot/usr/lib/${HOST}/${API}") -L$(to_tool_path "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN}/lib")"
 
   case $1 in
   ffmpeg)
@@ -1047,18 +1055,19 @@ android_ndk_cmake() {
 
   echo ${cmake} \
     -DCMAKE_VERBOSE_MAKEFILE=0 \
-    -DCMAKE_TOOLCHAIN_FILE="${toolchain_file}" \
-    -DCMAKE_SYSROOT="${sysroot}" \
-    -DCMAKE_FIND_ROOT_PATH="${sysroot}" \
-    -DCMAKE_INSTALL_PREFIX="${install_prefix}" \
-    -H"${source_dir}" \
-    -B"${build_dir}" \
+    -DCMAKE_TOOLCHAIN_FILE="$(to_tool_path "${toolchain_file}")" \
+    -DCMAKE_SYSROOT="$(to_tool_path "${sysroot}")" \
+    -DCMAKE_FIND_ROOT_PATH="$(to_tool_path "${sysroot}")" \
+    -DCMAKE_INSTALL_PREFIX="$(to_tool_path "${install_prefix}")" \
+    -H"$(to_tool_path "${source_dir}")" \
+    -B"$(to_tool_path "${build_dir}")" \
     "${ASM_OPTIONS}" \
     -DANDROID_PLATFORM=android-"${API}"
 }
 
 set_toolchain_paths() {
   export PATH=$PATH:${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN}/bin
+  export TOOL_NDK_ROOT=$(to_tool_path "${ANDROID_NDK_ROOT}")
 
   HOST=$(get_host)
 
