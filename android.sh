@@ -349,7 +349,10 @@ if [[ -n ${ANDROID_ARCHITECTURES} ]]; then
     elif [ -f "${ANDROID_NDK_ROOT}/ndk-build" ]; then
        "${ANDROID_NDK_ROOT}"/ndk-build -B 1>>"${BASEDIR}"/build.log 2>&1
     else
-       cmd.exe /c "$(to_tool_path "${ANDROID_NDK_ROOT}/ndk-build.cmd")" -B 1>>"${BASEDIR}"/build.log 2>&1
+       # PASS NDK_PROJECT_PATH AS WINDOWS PATH TO AVOID UNC PATH ERROR ON WSL
+       W_PROJECT_PATH=$(to_tool_path "${BASEDIR}/android")
+       W_NDK_BUILD=$(to_tool_path "${ANDROID_NDK_ROOT}/ndk-build.cmd")
+       cmd.exe /c "set NDK_PROJECT_PATH=${W_PROJECT_PATH} && ${W_NDK_BUILD} -B" 1>>"${BASEDIR}"/build.log 2>&1
     fi
 
     if [ $? -eq 0 ]; then
