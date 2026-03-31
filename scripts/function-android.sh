@@ -160,7 +160,7 @@ get_toolchain() {
 
 to_tool_path() {
   if [ -f /proc/version ] && grep -qi Microsoft /proc/version && [[ ${TOOLCHAIN} == windows* ]]; then
-    wslpath -w "$1" | sed 's/\\/\//g'
+    wslpath -m "$1"
   else
     echo "$1"
   fi
@@ -1013,16 +1013,6 @@ get_aar_directory() {
 android_ndk_cmake() {
   local cmake=$(which cmake)
 
-  # WSL: PREFER NATIVE CMAKE OVER WINDOWS CMAKE.EXE
-  if [ -f /proc/version ] && grep -qi Microsoft /proc/version; then
-    if [[ ${cmake} == *.exe ]] || [[ -z ${cmake} ]]; then
-      local sdk_cmake=$(find "${ANDROID_SDK_ROOT}"/cmake \( -path \*/bin/cmake -o -path \*/bin/cmake.exe \) -type f -print -quit)
-      if [[ -n ${sdk_cmake} ]]; then
-        cmake=${sdk_cmake}
-      fi
-    fi
-  fi
-
   if [[ -z ${cmake} ]]; then
     cmake="missing_cmake"
   fi
@@ -1038,31 +1028,34 @@ android_ndk_cmake() {
     ;;
   esac
 
-  # PATH CONVERSION FOR WINDOWS CMAKE ON WSL
   local toolchain_file="${ANDROID_NDK_ROOT}"/build/cmake/android.toolchain.cmake
   local sysroot="${ANDROID_SYSROOT}"
   local install_prefix="${LIB_INSTALL_PREFIX}"
   local source_dir="${BASEDIR}"/src/"${LIB_NAME}"
   local build_dir="${BUILD_DIR}"
 
-  if [[ ${cmake} == *.exe ]]; then
-    toolchain_file=$(wslpath -w "${toolchain_file}")
-    sysroot=$(wslpath -w "${sysroot}")
-    install_prefix=$(wslpath -w "${install_prefix}")
-    source_dir=$(wslpath -w "${source_dir}")
-    build_dir=$(wslpath -w "${build_dir}")
+  local host_tag=""
+  if [[ ${TOOLCHAIN} == windows* ]]; then
+    host_tag="-DANDROID_HOST_TAG=windows-x86_64"
   fi
 
-  echo ${cmake} \
-    -DCMAKE_VERBOSE_MAKEFILE=0 \
-    -DCMAKE_TOOLCHAIN_FILE="$(to_tool_path "${toolchain_file}")" \
-    -DCMAKE_SYSROOT="$(to_tool_path "${sysroot}")" \
-    -DCMAKE_FIND_ROOT_PATH="$(to_tool_path "${sysroot}")" \
-    -DCMAKE_INSTALL_PREFIX="$(to_tool_path "${install_prefix}")" \
-    -H"$(to_tool_path "${source_dir}")" \
-    -B"$(to_tool_path "${build_dir}")" \
+  echo "DEBUG: Running CMake: ${cmake} -G \"Unix Makefiles\" -DCMAKE_VERBOSE_MAKEFILE=1 -DCMAKE_TOOLCHAIN_FILE=${toolchain_file} -DCMAKE_SYSROOT=${sysroot} -DCMAKE_FIND_ROOT_PATH=${sysroot} -DCMAKE_INSTALL_PREFIX=${install_prefix} -S ${source_dir} -B ${build_dir} ${host_tag} ${ASM_OPTIONS} -DANDROID_PLATFORM=android-${API} $@" 1>>"${BASEDIR}"/build.log 2>&1
+
+  "${cmake}" \
+    -G "Unix Makefiles" \
+    -DCMAKE_VERBOSE_MAKEFILE=1 \
+    -DCMAKE_TOOLCHAIN_FILE="${toolchain_file}" \
+    -DCMAKE_SYSROOT="${sysroot}" \
+    -DCMAKE_FIND_ROOT_PATH="${sysroot}" \
+    -DCMAKE_INSTALL_PREFIX="${install_prefix}" \
+    -DBUILD_TESTING=OFF \
+    -DBUILD_EXAMPLES=OFF \
+    -S "${source_dir}" \
+    -B "${build_dir}" \
+    ${host_tag} \
     "${ASM_OPTIONS}" \
-    -DANDROID_PLATFORM=android-"${API}"
+    -DANDROID_PLATFORM=android-"${API}" \
+    "$@"
 }
 
 set_toolchain_paths() {
@@ -1076,8 +1069,9 @@ set_toolchain_paths() {
     EXE=".exe"
   fi
 
-  export CC=$(get_clang_host)-clang
-  export CXX=$(get_clang_host)-clang++
+  local toolchain_bin="${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${TOOLCHAIN}/bin"
+  export CC="${toolchain_bin}/$(get_clang_host)-clang"
+  export CXX="${toolchain_bin}/$(get_clang_host)-clang++"
 
   case ${ARCH} in
   arm64-v8a)

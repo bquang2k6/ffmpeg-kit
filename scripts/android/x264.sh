@@ -47,7 +47,7 @@ fi
 
 make -j$(get_cpu_count) || return 1
 
-make install || return 1
+make install RANLIB="true" || return 1
 
 # MANUALLY COPY PKG-CONFIG FILES
 cp x264.pc "${INSTALL_PKG_CONFIG_DIR}" || return 1
