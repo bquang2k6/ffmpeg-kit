@@ -346,8 +346,10 @@ if [[ -n ${ANDROID_ARCHITECTURES} ]]; then
   if [[ ${SKIP_ffmpeg_kit} -ne 1 ]]; then
     if [ "$(is_darwin_arm64)" == "1" ]; then
        arch -x86_64 "${ANDROID_NDK_ROOT}"/ndk-build -B 1>>"${BASEDIR}"/build.log 2>&1
+    elif [ -f "${ANDROID_NDK_ROOT}/ndk-build" ]; then
+       "${ANDROID_NDK_ROOT}"/ndk-build -B 1>>"${BASEDIR}"/build.log 2>&1
     else
-      "${ANDROID_NDK_ROOT}"/ndk-build -B 1>>"${BASEDIR}"/build.log 2>&1
+       cmd.exe /c "$(to_tool_path "${ANDROID_NDK_ROOT}/ndk-build.cmd")" -B 1>>"${BASEDIR}"/build.log 2>&1
     fi
 
     if [ $? -eq 0 ]; then
